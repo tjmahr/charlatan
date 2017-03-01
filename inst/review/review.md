@@ -44,9 +44,9 @@ Estimated hours spent reviewing:
 ### Review Comments
 
 This package is a tool for generating fake data. Users can create fake data of a
-given type by using functions that start with `ch_` --- for example,
-`ch_credit_card_number()` will create a fake credit card number or 
-`ch_name(n = 4, locale = "fr_FR")` to create four fake French-sounding names. 
+given type by using functions that start with `ch_`. For example,
+`ch_credit_card_number()` creates a fake credit card number or 
+`ch_name(n = 4, locale = "fr_FR")` creates four fake French-sounding names. 
 Applications for the package include education (creating fake datasets for
 students), statistical simulation, software testing, and perhaps anonymization.
 
@@ -55,6 +55,93 @@ inspiration from PHP Faker, Ruby Faker and Perl Faker. (Unfortunately, the name
 Faker has been taken on CRAN.) 
 
 The purpose of 
+
+
+## Package design
+
+This package uses the R6 object system to create classes of data-generators. The
+base class is the `BaseGenerator` class. It provides methods for generating
+random digits, random letters, and populating templates with random strings.
+
+
+
+### `BaseProvider`
+
+
+This package makes extensive use of the `sample()` function. This function has a
+flawed default. It expands integers into ranges, so that `sample(10, 1)` is the 
+same as `sample(1:10, 1)`. This package's `BaseProvider$random_element()` method
+inherits this flaw. Perhaps, `x[sample(seq_along(x), 1)]`, which samples from a
+sequence of item positions, would be a better implementation of this method.
+
+
+
+The method `random_int()` has the signature
+
+```
+random_int = function(min=0, max=9999) {
+  floor(runif(1, min, max))
+}
+
+range(replicate(n = 1000000, random_int()))
+```
+
+...but it can never generate the maximum value.
+
+
+It's unclear whether some programming decisions are due to faithfulness to Faker. 
+
+For example, wouldn't a simpler form of this method be `random_element(c(1:9, ""))`?
+
+```
+random_digit_or_empty = function() {
+  if (sample(0:1, size = 1) == 1) {
+    sample(0:9, size = 1)
+  } else {
+    ''
+  }
+}
+
+random_digit_or_empty()
+```
+
+
+
+
+### `NumericsProvider`
+
+This class generates random numbers, and it powers the various random number 
+generators. By default, `sample()` does not sample with replacement so
+`ch_integer()` will behave in unexpected ways. It is also odd that 
+
+```
+ch_integer(n = 10000, min = 1, max = 1000)
+#> Error in sample.int(length(x), size, replace, prob) : 
+#>   cannot take a sample larger than the population when 'replace = FALSE' 
+```
+
+
+
+
+
+
+
+The `random_digit_not_null` method is better named `random_digit_not_zero`
+
+### ch_integer()
+
+
+
+ch_integer(n = 10000, min = 1, max = 1000)
+ Show Traceback
+ 
+ Rerun with Debug
+ Error in sample.int(length(x), size, replace, prob) : 
+  cannot take a sample larger than the population when 'replace = FALSE' 
+
+
+
+
 
 
 ### ch_generate()
