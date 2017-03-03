@@ -37,9 +37,9 @@ Estimated hours spent reviewing: 8
 
 This package is a tool for generating fake data. Users can create fake data of a given type by using functions that start with `ch_`. For example, `ch_credit_card_number()` creates a fake credit card number or `ch_name(n = 4, locale = "fr_FR")` creates four fake French-sounding names. Applications for the package include education (creating fake datasets for students), statistical simulation, software testing, and perhaps anonymization.
 
-Charlatan is modeled after Python's Faker library which in turn draws inspiration from PHP Faker, Ruby Faker and Perl Faker. (Unfortunately, the name Faker has been taken on CRAN.) (It is also worth noting that [wakefield](https://github.com/trinker/wakefield) is another R package for fake-data. Wakefield provides *data-frames* of fake data, whereas this package mainly provides *vectors* of fake data.)
+Charlatan is modeled after Python's Faker library which in turn draws inspiration from PHP Faker, Ruby Faker and Perl Faker. Unfortunately, the name Faker has been taken on CRAN. (It is also worth noting that [wakefield](https://github.com/trinker/wakefield) is another R package for fake-data. Wakefield provides *data-frames* of fake data, whereas this package mainly provides *vectors* of fake data.)
 
-Overall, this package is well designed and well structured, although I found few bugs and inconsistencies while reviewing it.
+Overall, this package is well designed and well structured. The code is cleanly written and formatted, and it takes advantage of R idioms. This clear, expressive style made reading the code a breeze. That said, I found few bugs and inconsistencies while reviewing it.
 
 This package uses the R6 object system to create classes of data-generators. (Presumably, using objects and methods made porting the code from Python rather straightforward.) The base class is the `BaseGenerator` class. All other generators inherit from this class. Therefore, I'll review the code by visiting each of the generators in turn.
 
@@ -67,9 +67,9 @@ bp
 #>     random_letter: function ()
 
 bp$random_digit()
-#> [1] 7
+#> [1] 4
 bp$numerify("I have ## friends")
-#> [1] "I have 66 friends"
+#> [1] "I have 42 friends"
 ```
 
 This package makes extensive use of the `sample()` function. This function has a flawed default behavior: It expands integers into ranges. Thus, `sample(10, 1)` is the same as `sample(1:10, 1)`. This package's `BaseProvider$random_element()` method inherits this flaw.
@@ -80,7 +80,7 @@ bp$random_element(10)
 #> [1] 4
 ```
 
-Perhaps, `x[sample(seq_along(x), 1)]`, which would sample from a sequence of item positions, would be a better implementation for this method.
+Perhaps, `x[sample(seq_along(x), 1)]`, which samples from a sequence of item positions, would be a better implementation for this method.
 
 The method `random_int()` has the signature:
 
@@ -97,9 +97,9 @@ range(replicate(bp$random_int(min = 0, max = 99), n = 100000))
 #> [1]  0 98
 ```
 
-~~It's not clear whether this is intentional or an oversight, but it's the kind of weird detail that should be noted.~~ On further consideration, this is probably a bug because the DOI-generators uses the function with min = 0 and max = 9999.
+~~It's not clear whether this behavior is intentional or an oversight, but it's the kind of weird detail that should be noted.~~ On further consideration, this behavior is probably a bug because the DOI-generators uses the function with `min = 0` and `max = 9999`.
 
-I'm curious why the digit-or-blank generators don't just sample from a larger set. The code for `random_digit_not_null_or_empty()` means that half of the generated items should be`""`.
+I'm curious why the digit-or-blank generators don't just sample from a larger set. The code for `random_digit_not_null_or_empty()` means that half of the generated items should be `""`.
 
 ``` r
 bp$random_digit_not_null_or_empty
@@ -110,7 +110,7 @@ bp$random_digit_not_null_or_empty
 #>         ''
 #>       }
 #>     }
-#> <environment: 0x000000000616dd88>
+#> <environment: 0x0000000008c7ce80>
 
 # Why not sample with this instead?
 bp$random_element(c(1:9, ""))
@@ -119,7 +119,7 @@ bp$random_element(c(1:9, ""))
 
 #### NumericsProvider
 
-This class generates random numbers. This class demonstrates nice features of the R6-based design:
+This class generates random numbers. It demonstrates nice features of the R6-based design:
 
 1.  grouping similar functionality into a cohesive object
 2.  providing a logical extension point for other kinds of number generators
@@ -150,7 +150,7 @@ np
 #>     unif: function (n = 1, min = 0, max = 9999)
 ```
 
-This class powers the various random number generators in the package. The functions `ch_integer()`, `ch_double()`, `ch_unif()`, etc. actually just generate one-off `NumericsProvider` objects and call a method.
+This class powers the various random number generators in the package. The functions `ch_integer()`, `ch_double()`, `ch_unif()`, etc. actually just generate one-off `NumericsProvider` objects and call a method for the object.
 
 ``` r
 ch_norm
@@ -161,7 +161,7 @@ ch_norm
 #> <environment: namespace:charlatan>
 ```
 
-The package rightly calls upon R's built-in number generators (`rnorm`, `runif`, `rbeta`, etc.) for almost all of the number generators. It uses different defaults for the uniform distribution than R, but uses the same defaults as R for the others.
+The package rightly calls upon R's built-in number generators (`rnorm`, `runif`, `rbeta`, etc.) for almost all of the number generators. It uses different defaults for the uniform distribution than R, but does use the same defaults as R for the others.
 
 ``` r
 args(runif)
@@ -174,7 +174,7 @@ args(NumericsProvider$new()$unif)
 
 Here I think the package should follow R's defaults and take advantage of what the user may already know about the `r*` functions.
 
-The `integer()` method doesn't defer to R, but instead uses `sample()`. By default, `sample()` does not sample with replacement so `NumericsProvider$new()$integer()` and `ch_integer()` can behave in unexpected ways.
+The `integer()` method doesn't defer to R, but it instead uses `sample()`. By default `sample()` does not sample with replacement, so `NumericsProvider$new()$integer()` and `ch_integer()` can behave in unexpected ways.
 
 ``` r
 ch_integer(n = 10000, min = 1, max = 1000)
@@ -185,7 +185,7 @@ It is also odd that the `random_int()` and `integer()` use different techniques 
 
 #### PersonProvider
 
-This class implements the package's impressive and fun random name generator feature. It can generator locale-specific names. It has one method: `render()`. This class powers the `ch_name()` function.
+This class implements the package's impressive (and fun) random name generator. It can generator locale-specific names. It has one method: `render()`. This class powers the `ch_name()` function.
 
 ``` r
 set.seed(100)
@@ -204,7 +204,7 @@ ch_name(4)
 
 As the example above shows, the names can vary in format. (Sometimes there is a blank first name --- this might be a bug.)
 
-This function works by randomly selecting a name format, and populating the format with random names/affixes.
+This function works by randomly selecting a name format and populating the format with random names/affixes.
 
 ``` r
 # Formats
@@ -257,7 +257,7 @@ list.files(r_dir, "person-provider-")
 
 I wonder if using a `data/` folder would be a cleaner way to separate code and package data.
 
-The documentation for `ch_name` under-reports the supported locales. For example, Spanish is supported but this Spanish support is not documented.
+The documentation for `ch_name()` under-reports the supported locales. For example, Spanish is supported but this Spanish support is not documented.
 
 There is a bug in how double last names (as in Spanish) are generated.
 
@@ -295,7 +295,7 @@ spanish$render()
 #> [1] "Javier Gras Gras"
 ```
 
-This is a problem with `whisker::render()`. The following code tweaks the package internals for debugging. It generates four different last names but whisker recycles the first.
+This behavior is a problem with `whisker::render()`. The following code tweaks the package internals for debugging. It generates four different last names but whisker recycles the first.
 
 ``` r
 pluck_names <- charlatan:::pluck_names
@@ -320,7 +320,7 @@ whisker::whisker.render(fmt, data = dat)
 
 This class generates colors.
 
-Its hex-color generator users the `random_int()` method to choose a number between 1 and 16777215. The above noted behavior means it will never generate \#ffffff or, I think, \#000000.
+Its hex-color generator users the `random_int()` method to choose a number between 1 and 16777215. The above noted behavior means it will never generate \#ffffff, and the lower bound of 1 prevents \#000000 from being generate too.
 
 ``` r
 cp <- ColorProvider$new()
@@ -343,7 +343,7 @@ cp$hex_color()
 
 It pads zeros onto strings less than 6 characters to create the familiar six- digit format. But padding is done on the right side, so it will never generate "\#0000ff". It also counts character length after appending the the pound sign, so the above example shows an incorrect hex color.
 
-~~I think using `sprintf("#%06x", ...)` would fix these problems.~~ Actually, I discovered `grDevices::rgb()` while reading about the `colors()` in a later comment. That should power the implementation.
+~~I think using `sprintf("#%06x", ...)` would fix these problems.~~ Actually, I discovered `grDevices::rgb()` while reading about the `colors()` in a later comment. That function should power the implementation.
 
 ``` r
 rgb(0, 0, 0, maxColorValue = 255)
@@ -356,7 +356,7 @@ rgb(sample_col(), sample_col(), sample_col(), maxColorValue = 255)
 #> [1] "#4ADFCC"
 ```
 
-A similar strategy underlies the `safe_hex_color()` method, so that has the same flaws. Plus, something mysterious happens sometimes:
+A similar strategy underlies `safe_hex_color()`, so that method has the same flaws. Plus, something mysterious happens sometimes:
 
 ``` r
 set.seed(26)
@@ -364,7 +364,7 @@ cp$safe_hex_color()
 #> [1] "#4400#4400"
 ```
 
-For this method I think generating three separate hex digits and duplicating them and concatenating them would be a cleaner implementation. I also find [conflicting information](http://websafecolors.info/color-chart) about which colors are "safe" -- is this method's definition of safe colors standard?
+For this method I think generating three separate hex digits and duplicating them and concatenating them would be a cleaner implementation. I also find [conflicting information](http://websafecolors.info/color-chart) about which colors are "safe" --- is this method's definition of safe colors standard?
 
 `rbg_color()` calls the `hex_color()` method, so it will inherit that function's bugs. Plus, sometimes I get an error.
 
@@ -383,7 +383,7 @@ sample(colors(), 3)
 
 #### CoordinateProvider
 
-CoordinateProviders does what it says. It powers `ch_lat()`, `ch_lon()`, `ch_position()`. Notably, it does not inherit from the BaseProvider class.
+CoordinateProvider does what it says. It powers `ch_lat()`, `ch_lon()`, `ch_position()`. Notably, it does not inherit from the BaseProvider class.
 
 ``` r
 cp <- CoordinateProvider$new()
@@ -428,9 +428,9 @@ This class powers `ch_timezone()`, `ch_unix_time()`, and `ch_date_time()`. It is
 
 ``` r
 DateTimeProvider$new()$unix_time()
-#> [1] 530899402
+#> [1] 530920024
 DateTimeProvider$new()$date_time()
-#> [1] "2016-07-25 22:39:19 CDT"
+#> [1] "2016-07-26 14:30:39 CDT"
 ```
 
 There is a typo in `century()` method, so it always errors.
@@ -444,7 +444,7 @@ body(DateTimeProvider$new()$century)
 
 #### TaxonomyProvider
 
-This class randomly samples from prepackaged genus/species names. The basis for the random genus/species names are well detailed in the hidden `?TaxonomyProvider` but not in the user-facing `?taxonomy` page. Now that Roxygen2 supports new `@inherit` and `@inheritSection fun title` directives, I suggest that the user-facing page include this documentation.
+This class randomly samples from prepackaged genus/species names. The basis for the random genus/species names is well detailed in the hidden `?TaxonomyProvider` page but not included in the user-facing `?taxonomy` page. Now that Roxygen2 supports the new `@inherit` and `@inheritSection fun title` directives, I suggest that the user-facing page include this documentation.
 
 ``` r
 set.seed(22)
@@ -467,11 +467,11 @@ This class randomly samples a vector of currency abbreviations.
 
 ##### DOIProvider
 
-This classes main job is to randomly select DOI formats, then populate those formats with characters/integers. This class does not use its inherited `random_int()` method to generate the integers, but it should.
+This class's main job is to randomly select a DOI format and populate the format with characters/integers. This class does not use its inherited `random_int()` method to generate the integers, but it should.
 
 ##### JobProvider
 
-The class produces occupation titles, using the same locale-specificity covered earlier. It just randomly samples occupations from a vector with each locale's occupation names.
+The class produces occupation titles using the same locale-specificity covered earlier. It just randomly samples occupations from a vector with each locale's occupation names.
 
 ``` r
 set.seed(36)
@@ -498,13 +498,11 @@ ch_phone_number(4)
 
 ##### SequenceProvider
 
-This class generates gene sequences by sampling letters and concatenating them.
-
-I feel the user-facing function should be named `ch_gene_sequence()`, not `ch_sequence()`
+This class generates gene sequences by sampling letters and concatenating them. I feel the user-facing function should be named `ch_gene_sequence()`, not `ch_sequence()`
 
 #### FraudsterClient
 
-This class wraps all the `ch_` functions into a single object for general-purpose fake data generation in a given locale. Because locales are not uniformly supported, this can lead to errors. Also, the `name()` method ignores locale when it can support it.
+This class wraps all the `ch_` functions into a single object for general-purpose fake data generation in a given locale. Because locales are not uniformly supported, this can lead to errors. Also, the `name()` method ignores the locale even though it can support different locales.
 
 ``` r
 y <- fraudster(locale = "fr_FR")
@@ -524,9 +522,9 @@ y$name()
 
 I didn't closely review the code for these classes, as they appear to be unfinished and are not user-facing like the other ones. I am documenting them here for completeness.
 
-The package contains exported, in-progress code for generating addresses with `AddressProvider`. There is no `ch_address`.
+The package contains exported, in-progress code for generating addresses with `AddressProvider`. There is no `ch_address()`.
 
-It also contains `company_provider()` which is exported but not documented and not linked to any `ch_` functions. It has a different R6 design and naming scheme than other classes. This one looks like a lot of fun.
+It also contains the `company_provider` class which is exported but not documented and not linked to any `ch_` functions. It has a different R6 design and naming scheme than other classes. This one looks like a lot of fun.
 
 ``` r
 # I think the same whisker::render() bug is happening here
@@ -549,7 +547,7 @@ company_provider()$catch_phrase()
 #> [1] "Seamless zero-defect archive"
 ```
 
-`MissingProvider` provides a method to inject NA values into a vector. There is no user-facing function (something like `ch_missing`) for this class). Nevertheless, it's odd that the *n* missing values it generates for a vector overwrite the first *n* values.
+`MissingProvider` provides a method to inject NA values into a vector. There is no user-facing function (something like `ch_missing()`) for this class). Nevertheless, it's odd that the *n* missing values it generates for a vector overwrite the first *n* values.
 
 ``` r
 set.seed(10)
@@ -558,7 +556,7 @@ MissingDataProvider$new()$make_missing(letters)
 #> [18] "r" "s" "t" "u" "v" "w" "x" "y" "z"
 ```
 
-I feel like it should randomly determine *n*, `sample()` *n* position indices, and make the elements in those positions NA, so that the NAs are scattered throughout the vector.
+I feel like it should randomly determine *n*, `sample()` *n* position indices, and make the elements in those positions NA so that the NAs are scattered throughout the vector.
 
 #### `ch_generate()`
 
@@ -592,12 +590,12 @@ The documentation for `...` should also say that `name`, `job`, and `phone_numbe
 
 #### Other comments
 
-`parse_eval()` should move to zzz.R, where the rest of the utility functions live. Personally, I would avoid using this function by structuring all the data into a nested list so that items can be retrieved with `data[[locale_name]]` instead of using `parse_eval()` to create-then-evaluate a variable name.
+`parse_eval()` should move to zzz.R, where the rest of the utility functions live. Personally, I would avoid using this function by structuring all the data into nested lists so that items can be retrieved with `data[[locale_name]]` instead of using `parse_eval()` to create-then-evaluate a variable name.
 
 Some functions have `return()`; some do not.
 
-The `random_digit_not_null` method in the BaseGenerator is better named `random_digit_not_zero`.
+The `random_digit_not_null()` method in the BaseGenerator is better named `random_digit_not_zero()`.
 
 The unit test for colors and safe colors should check that the generated colors meets the color and safe-color formats.
 
-There are only unit-tests for the colors, coordinates, credit cards, currency and jobs. I would suggest adding tests for the functions I've described bugs in.
+There are only unit tests for the colors, coordinates, credit cards, currency and jobs. I would suggest adding tests for the functions I've described bugs in.
