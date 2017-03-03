@@ -267,7 +267,7 @@ This class generates colors.
 
 Its hex-color generator users the `random_int()` method to choose a number 
 between 1 and 16777215. The above noted behavior means it will never generate 
-\#ffffff, and the lower bound of 1 prevents \#000000 from being generate too. 
+\#ffffff, and the lower bound of 1 prevents \#000000 from being generated too. 
 
 ```{r}
 cp <- ColorProvider$new()
@@ -289,7 +289,7 @@ digit format. But padding is done on the right side, so it will never generate
 so the above example shows an incorrect hex color.
 
 ~~I think using `sprintf("#%06x", ...)` would fix these problems.~~ Actually,
-I discovered `grDevices::rgb()` while reading about the `colors()` in a later
+I discovered `grDevices::rgb()` while reading about the `colors()` for a later
 comment. That function should power the implementation.
 
 ```{r}
@@ -300,7 +300,7 @@ sample_col <- function() sample(0:255, 1)
 rgb(sample_col(), sample_col(), sample_col(), maxColorValue = 255)
 ```
 
-A similar strategy underlies `safe_hex_color()`, so that method has the same
+A similar strategy underlies `safe_hex_color()`, so the method has the same
 flaws. Plus, something mysterious happens sometimes: 
 
 ```{r}

@@ -67,9 +67,9 @@ bp
 #>     random_letter: function ()
 
 bp$random_digit()
-#> [1] 4
+#> [1] 0
 bp$numerify("I have ## friends")
-#> [1] "I have 42 friends"
+#> [1] "I have 75 friends"
 ```
 
 This package makes extensive use of the `sample()` function. This function has a flawed default behavior: It expands integers into ranges. Thus, `sample(10, 1)` is the same as `sample(1:10, 1)`. This package's `BaseProvider$random_element()` method inherits this flaw.
@@ -110,7 +110,7 @@ bp$random_digit_not_null_or_empty
 #>         ''
 #>       }
 #>     }
-#> <environment: 0x0000000008c7ce80>
+#> <environment: 0x0000000008c7dd58>
 
 # Why not sample with this instead?
 bp$random_element(c(1:9, ""))
@@ -320,7 +320,7 @@ whisker::whisker.render(fmt, data = dat)
 
 This class generates colors.
 
-Its hex-color generator users the `random_int()` method to choose a number between 1 and 16777215. The above noted behavior means it will never generate \#ffffff, and the lower bound of 1 prevents \#000000 from being generate too.
+Its hex-color generator users the `random_int()` method to choose a number between 1 and 16777215. The above noted behavior means it will never generate \#ffffff, and the lower bound of 1 prevents \#000000 from being generated too.
 
 ``` r
 cp <- ColorProvider$new()
@@ -343,7 +343,7 @@ cp$hex_color()
 
 It pads zeros onto strings less than 6 characters to create the familiar six- digit format. But padding is done on the right side, so it will never generate "\#0000ff". It also counts character length after appending the the pound sign, so the above example shows an incorrect hex color.
 
-~~I think using `sprintf("#%06x", ...)` would fix these problems.~~ Actually, I discovered `grDevices::rgb()` while reading about the `colors()` in a later comment. That function should power the implementation.
+~~I think using `sprintf("#%06x", ...)` would fix these problems.~~ Actually, I discovered `grDevices::rgb()` while reading about the `colors()` for a later comment. That function should power the implementation.
 
 ``` r
 rgb(0, 0, 0, maxColorValue = 255)
@@ -356,7 +356,7 @@ rgb(sample_col(), sample_col(), sample_col(), maxColorValue = 255)
 #> [1] "#4ADFCC"
 ```
 
-A similar strategy underlies `safe_hex_color()`, so that method has the same flaws. Plus, something mysterious happens sometimes:
+A similar strategy underlies `safe_hex_color()`, so the method has the same flaws. Plus, something mysterious happens sometimes:
 
 ``` r
 set.seed(26)
@@ -428,9 +428,9 @@ This class powers `ch_timezone()`, `ch_unix_time()`, and `ch_date_time()`. It is
 
 ``` r
 DateTimeProvider$new()$unix_time()
-#> [1] 530920024
+#> [1] 530920243
 DateTimeProvider$new()$date_time()
-#> [1] "2016-07-26 14:30:39 CDT"
+#> [1] "2016-07-26 14:40:45 CDT"
 ```
 
 There is a typo in `century()` method, so it always errors.
